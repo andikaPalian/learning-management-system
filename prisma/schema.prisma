@@ -1,0 +1,124 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  INSTRUCTOR
+  STUDENT
+}
+
+model User {
+  id String @id @default(uuid()) @map("id")
+  name String
+  email String @unique
+  password String
+  role Role @default(STUDENT)
+  courses Course[] @relation("InstructorCourses")
+  enrollments Enrollment[]
+  submissions Submission[]
+  comments Comment[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Course {
+  id String @id @default(uuid()) @map("id")
+  title String
+  description String
+  intructor User @relation("InstructorCourses", fields: [instructorId], references: [id])
+  instructorId String
+  modules Module[]
+  enrollments Enrollment[]
+  assigments Assigment[]
+  discussions Discussion[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Enrollment {
+  id String @id @default(uuid()) @map("id")
+  user User @relation(fields: [userId], references: [id])
+  userId String
+  course Course @relation(fields: [courseId], references: [id])
+  courseId String
+  createdAt DateTime @default(now())
+}
+
+model Module {
+  id String @id @default(uuid()) @map("id")
+  title String
+  course Course @relation(fields: [courseId], references: [id])
+  courseId String
+  lessons Lesson[]
+  createdAt DateTime @default(now())
+}
+
+model Lesson {
+  id String @id @default(uuid()) @map("id")
+  title String
+  content String
+  module Module @relation(fields: [moduleId], references: [id])
+  moduleId String
+  createdAt DateTime @default(now())
+}
+
+model Assigment {
+  id String @id @default(uuid()) @map("id")
+  title String
+  content String
+  course Course @relation(fields: [courseId], references: [id])
+  courseId String
+  submissions Submission[]
+  createdAt DateTime @default(now())
+}
+
+model Submission {
+  id String @id @default(uuid()) @map("id")
+  content String
+  assigment Assigment @relation(fields: [assigmentId], references: [id])
+  assigmentId String
+  student User @relation(fields: [studentId], references: [id])
+  studentId String
+  grade Grade?
+  createdAt DateTime @default(now())
+}
+
+model Grade {
+  id String @id @default(uuid()) @map("id")
+  submission Submission @relation(fields: [submissionId], references: [id])
+  submissionId String @unique
+  score Int
+  feedback String
+  createdAt DateTime @default(now())
+}
+
+model Discussion {
+  id String @id @default(uuid()) @map("id")
+  course Course @relation(fields: [courseId], references: [id])
+  courseId String
+  title String
+  comments Comment[]
+  createdAt DateTime @default(now())
+}
+
+model Comment {
+  id String @id @default(uuid()) @map("id")
+  discussions Discussion @relation(fields: [discussionId], references: [id])
+  discussionId String
+  user User @relation(fields: [userId], references: [id])
+  userId String
+  content String
+  createdAt DateTime @default(now())
+}
