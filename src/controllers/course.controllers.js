@@ -117,7 +117,7 @@ const listCourses = async (req, res) => {
                 courses,
                 totalStudent: totalEnrollments
             },
-            totalCourses,
+            totalCourses: totalCourses,
             totalPages: Math.ceil(totalCourses / limitNum),
             currentPage: pageNum,
             perPage: limitNum,
@@ -224,4 +224,122 @@ const deleteCourse = async (req, res) => {
     }
 }
 
-export {createCourse, listCourses, updateCourse, deleteCourse};
+const joinCourse = async (req, res) => {
+    try {
+        const {courseId} = req.params;
+
+        if (!courseId) {
+            return res.status(400).json({
+                message: "Course id is required"
+            });
+        }
+
+        const course = await prisma.course.findUnique({
+            where: {
+                id: courseId
+            }
+        });
+        if (!course) {
+            return res.status(404).json({
+                message: "Course not found"
+            });
+        }
+
+        const enrollment = await prisma.enrollment.findFirst({
+            where: {
+                courseId: courseId,
+                userId: req.user.id
+            }
+        });
+        if (enrollment) {
+            return res.status(400).json({
+                message: "You are already enrolled in this course"
+            });
+        }
+
+        await prisma.enrollment.create({
+            data: {
+                courseId: courseId,
+                userId: req.user.id
+            }
+        });
+
+        res.status(200).json({
+            message: "You have successfully enrolled in this course"
+        });
+    } catch (error) {
+        console.error("Error during join course:", error);
+        return res.status(500).json({
+            message: "Internal server error",
+            error: error.message || "An unexpected error occurred"
+        });
+    }
+}
+
+const listStudents = async (req, res) => {
+    try {
+        const {courseId} = req.params;
+        const {page = 1, limit = 10} = req.query;
+        const pageNum = Number(page);
+        const limitNum = Number(limit);
+        const skip = (pageNum - 1) * limitNum;
+
+        if (!courseId) {
+            return res.status(400).json({
+                message: "Course id is required"
+            });
+        }
+
+        const course = await prisma.course.findUnique({
+            where: {
+                id: courseId
+            }
+        });
+        if (!course) {
+            return res.status(404).json({
+                message: "Course not found"
+            });
+        }
+
+        const students = await prisma.enrollment.findMany({
+            where: {
+                courseId: courseId
+            },
+            include: {
+                user: true
+            },
+            skip: skip,
+            take: limitNum
+        });
+
+        const totalStudents = await prisma.enrollment.count({
+            where: {
+                courseId: courseId
+            }
+        });
+
+        res.status(200).json({
+            message: "Students fetched successfully",
+            data: {
+                course: course.title,
+                students: students.map(student => ({
+                id: student.user.id,
+                name: student.user.name,
+                email: student.user.email
+                })),
+                totalStudents: totalStudents,
+                totalPages: Math.ceil(totalStudents / limitNum),
+                currentPage: pageNum,
+                perPage: limitNum
+            }
+        });
+    } catch (error) {
+        console.error("Error during list students:", error);
+        return res.status(500).json({
+            message: "Internal server error",
+            error: error.message || "An unexpected error occurred"
+        });
+    }
+}
+
+export {createCourse, listCourses, updateCourse, deleteCourse, joinCourse, listStudents};
