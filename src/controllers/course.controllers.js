@@ -136,9 +136,9 @@ const updateCourse = async (req, res) => {
         const {courseId} = req.params;
         const {title, description} = req.body;
 
-        if (!courseId) {
+        if (!validator.isUUID(courseId)) {
             return res.status(400).json({
-                message: "Course id is required"
+                message: "Invalid course id format"
             });
         }
 
@@ -173,6 +173,12 @@ const updateCourse = async (req, res) => {
             updateData.description = description;
         }
 
+        if (course.instructorId !== req.user.id || req.user.role !== 'ADMIN') {
+            return res.status(403).json({
+                message: "Unauthorized: You are not the instructor of this course or an admin"
+            });
+        }
+
         const updateCourse = await prisma.course.update({
             where: {
                 id: courseId
@@ -200,9 +206,21 @@ const deleteCourse = async (req, res) => {
     try {
         const {courseId} = req.params;
 
-        if (!courseId) {
+        if (!validator.isUUID(courseId)) {
             return res.status(400).json({
-                message: "Course id is required"
+                message: "Invalid course id format"
+            });
+        }
+
+        const course = await prisma.course.findUnique({
+            where: {
+                id: courseId
+            }
+        });
+
+        if (course.instructorId !== req.user.id || req.user.role !== "ADMIN") {
+            return res.status(403).json({
+                message: "Unauthorized: you are not the instructor of this course or an admin"
             });
         }
 
@@ -228,9 +246,9 @@ const joinCourse = async (req, res) => {
     try {
         const {courseId} = req.params;
 
-        if (!courseId) {
+        if (!validator.isUUID(courseId)) {
             return res.status(400).json({
-                message: "Course id is required"
+                message: "Invalid course id format"
             });
         }
 
@@ -254,6 +272,18 @@ const joinCourse = async (req, res) => {
         if (enrollment) {
             return res.status(400).json({
                 message: "You are already enrolled in this course"
+            });
+        }
+
+        if (course.instructorId === req.user.id) {
+            return res.status(400).json({
+                message: "You are the instructor of this course"
+            });
+        }
+
+        if (req.user.role !== "STUDENT") {
+            return res.status(403).json({
+                message: "Unauthorized: you are not a student, only students can join courses"
             });
         }
 
