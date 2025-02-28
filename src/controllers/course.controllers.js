@@ -114,7 +114,17 @@ const listCourses = async (req, res) => {
         res.status(200).json({
             message: "Courses fetched successfully",
             courses: {
-                courses,
+                courses: courses.map(course => ({
+                    id: course.id,
+                    title: course.title,
+                    description: course.description,
+                    instructorId: course.instructorId,
+                    modules: course.modules.map(module => ({
+                        id: module.id,
+                        title: module.title,
+                        description: module.description,
+                    }))
+                })),
                 totalStudent: totalEnrollments
             },
             totalCourses: totalCourses,
