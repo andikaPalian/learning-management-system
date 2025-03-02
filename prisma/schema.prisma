@@ -81,6 +81,7 @@ model Assigment {
   module Module @relation(fields: [moduleId], references: [id])
   moduleId String
   submissions Submission[]
+  dueDate DateTime?
   createdAt DateTime @default(now())
 }
 
@@ -92,6 +93,8 @@ model Submission {
   student User @relation(fields: [studentId], references: [id])
   studentId String
   grade Grade?
+  submittedAt DateTime @default(now())
+  instructorComment String?
   createdAt DateTime @default(now())
 }
 
