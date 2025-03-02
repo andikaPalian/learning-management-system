@@ -163,7 +163,8 @@ const listModule = async (req, res) => {
                 courseId: courseId
             },
             include: {
-                lessons: true
+                lessons: true,
+                assigments: true
             },
             skip: skip,
             take: limitNum
@@ -196,6 +197,13 @@ const listModule = async (req, res) => {
                         id: lesson.id,
                         title: lesson.title,
                         content: lesson.content
+                    })),
+                    assigments: module.assigments.map(assigment => ({
+                        id: assigment.id,
+                        title: assigment.title,
+                        content: assigment.content,
+                        dueDate: assigment.dueDate
+                        
                     }))
                 })),
                 totalModules: totalModules,
@@ -484,4 +492,237 @@ const deleteLesson = async (req, res) => {
     }
 }
 
-export {addModule, addLesson, listModule, editModule, editLesson, deleteModule, deleteLesson};
+const addAssigment = async (req, res) => {
+    try {
+        const {moduleId} = req.params;
+        const {title, content, dueDate} = req.body;
+
+        if (!validator.isUUID(moduleId)) {
+            return res.status(400).json({
+                message: "Invalid module id format"
+            });
+        }
+
+        const module = await prisma.module.findUnique({
+            where: {
+                id: moduleId
+            },
+            include: {
+                course: true,
+            }
+        });
+        if (!module) {
+            return res.status(404).json({
+                message: "Module not found"
+            });
+        }
+
+        if (module.course.instructorId !== req.user.id) {
+            return res.status(403).json({
+                message: "Unauthorized: Only the course instructor can add assignments"
+            });
+        }
+
+        if (typeof title !== "string" || !validator.isLength(title, {min: 3, max: 100})) {
+            return res.status(400).json({
+                message: "Title must be a string and between 3 and 100 characters"
+            });
+        }
+
+        if (typeof content !== "string" || !validator.isLength(content, {min: 3, max: 1000})) {
+            return res.status(400).json({
+                message: "Content must be a string and between 3 and 1000 characters"
+            });
+        }
+
+        if (typeof dueDate !== "string" || !validator.isDate(dueDate)) {
+            return res.status(400).json({
+                message: "Due date must be a valid date"
+            });
+        }
+
+        const assigment = await prisma.assigment.create({
+            data: {
+                title,
+                content,
+                dueDate: new Date(dueDate),
+                moduleId: moduleId
+            }
+        });
+
+        res.status(201).json({
+            message: "Assigment created successfully",
+            assigment: assigment
+        });
+    } catch (error) {
+        console.error("Error during add assigment:", error);
+        return res.status(500).json({
+            message: "Internal server error",
+            error: error.message || "An unexpected error occurred",
+        });
+    }
+}
+
+const editAssigment = async (req, res) => {
+    try {
+        const {moduleId, assigmentId} = req.params;
+        const {title, content, dueDate} = req.body;
+
+        if (!validator.isUUID(moduleId) || !validator.isUUID(assigmentId)) {
+            return res.status(400).json({
+                message: "Invalid module or assigment id format"
+            });
+        }
+
+        const module = await prisma.module.findUnique({
+            where: {
+                id: moduleId,
+            },
+            include: {
+                course: true
+            }
+        });
+        if (!module) {
+            return res.status(404).json({
+                message: "Module not found"
+            });
+        }
+
+        const assigment = await prisma.assigment.findUnique({
+            where: {
+                id: assigmentId,
+                moduleId: moduleId
+            },
+            include: {
+                module: true,
+                course: true
+            }
+        });
+        if (!assigment) {
+            return res.status(404).json({
+                message: "Assigment not found"
+            });
+        }
+
+        if (module.course.instructorId !== req.user.id) {
+            return res.status(403).json({
+                message: "Unauthorized: Only the course instructor can edit assignments"
+            });
+        }
+
+        const updateData = {};
+
+        if (title !== undefined) {
+            if (typeof title !== "string" || !validator.isLength(title, {min: 3, max: 100})) {
+                return res.status(400).json({
+                    message: "Title must be a string and between 3 and 100 characters"
+                });
+            }
+            updateData.title = title;
+        }
+
+        if (content !== undefined) {
+            if (typeof content !== "string" || !validator.isLength(content, {min: 3, max: 1000})) {
+                return res.status(400).json({
+                    message: "Content must be a string and between 3 and 1000 characters"
+                });
+            }
+            updateData.content = content;
+        }
+
+        if (dueDate !== undefined) {
+            if (typeof dueDate !== "string" || !validator.isDate(dueDate)) {
+                return res.status(400).json({
+                    message: "Due date must be a valid date"
+                });
+            }
+            updateData.dueDate = new Date(dueDate);
+        }
+
+        const updateAssigment = await prisma.assigment.update({
+            where: {
+                id: assigmentId,
+                moduleId: moduleId
+            },
+            data: updateData
+        });
+
+        res.status(200).json({
+            message: "Assigment updated successfully",
+            assigment: updateAssigment
+        });
+    } catch (error) {
+        console.error("Error during edit assigment:", error);
+        return res.status(500).json({
+            message: "Internal server error",
+            error: error.message || "An unexpected error occurred",
+        });
+    }
+}
+
+const deleteAssigment = async (req, res) => {
+    try {
+        const {moduleId, assigmentId} = req.params;
+
+        if (!validator.isUUID(moduleId) || !validator.isUUID(assigmentId)) {
+            return res.status(400).json({
+                message: "Invalid module or assigment id format"
+            });
+        }
+
+        const module = await prisma.module.findUnique({
+            where: {
+                id: moduleId,
+            },
+            include: {
+                course: true
+            }
+        });
+        if (!module) {
+            return res.status(404).json({
+                message: "Module not found"
+            });
+        }
+
+        const assigment = await prisma.assigment.findUnique({
+            where: {
+                id: assigmentId,
+                moduleId: moduleId
+            },
+            include: {
+                module: true,
+                course: true
+            }
+        });
+        if (!assigment) {
+            return res.status(404).json({
+                message: "Assigment not found"
+            });
+        }
+
+        if (module.course.instructorId !== req.user.id) {
+            return res.status(403).json({
+                message: "Unauthorized: Only the course instructor can delete assignments"
+            });
+        }
+
+        await prisma.assigment.delete({
+            where: {
+                id: assigmentId,
+                moduleId: moduleId
+            }
+        });
+
+        res.status(200).json({
+            message: "Assigment deleted successfully"
+        });
+    } catch (error) {
+        console.error("Error during delete assigment:", error);
+        return res.status(500).json({
+            message: "Internal server error",
+            error: error.message || "An unexpected error occurred",
+        });
+    }
+}
+
+export {addModule, addLesson, listModule, editModule, editLesson, deleteModule, deleteLesson, addAssigment, editAssigment, deleteAssigment};
