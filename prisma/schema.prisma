@@ -41,7 +41,6 @@ model Course {
   instructorId String
   modules Module[]
   enrollments Enrollment[]
-  assigments Assigment[]
   discussions Discussion[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -62,6 +61,7 @@ model Module {
   course Course @relation(fields: [courseId], references: [id])
   courseId String
   lessons Lesson[]
+  assigments Assigment[]
   createdAt DateTime @default(now())
 }
 
@@ -78,8 +78,8 @@ model Assigment {
   id String @id @default(uuid()) @map("id")
   title String
   content String
-  course Course @relation(fields: [courseId], references: [id])
-  courseId String
+  module Module @relation(fields: [moduleId], references: [id])
+  moduleId String
   submissions Submission[]
   createdAt DateTime @default(now())
 }
