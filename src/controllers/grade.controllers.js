@@ -50,7 +50,7 @@ const giveGrade = async (req, res) => {
 
         if (typeof feedback !== 'string' || !validator.isLength(feedback, {min: 3, max: 1000})) {
             return res.status(400).json({
-                message: "Feedback must be a string between 10 and 1000 characters"
+                message: "Feedback must be a string between 3 and 1000 characters"
             });
         }
 
