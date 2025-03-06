@@ -7,6 +7,7 @@ import studentRouter from './src/routes/student.routes.js';
 import courseRouter from './src/routes/course.routes.js';
 import moduleRouter from './src/routes/module.routes.js';
 import submissionRouter from './src/routes/submisson.routes.js';
+import discussionRouter from './src/routes/discussion.routes.js';
 
 const app = express();
 const port = process.env.PORT;
@@ -20,6 +21,7 @@ app.use("/api/student", studentRouter);
 app.use("/api/course", courseRouter);
 app.use("/api/module", moduleRouter);
 app.use("/api/submission", submissionRouter);
+app.use("/api/discussion", discussionRouter);
 
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
