@@ -130,4 +130,81 @@ const loginInstructor = async (req, res) => {
     }
 }
 
-export {registerInstructor, loginInstructor};
+const updateProfile = async (req, res) => {
+    try {
+        const {name, email} = req.body;
+
+        const instructor = await prisma.user.findUnique({
+            where: {
+                id: req.user.id,
+                email: req.user.email,
+                role: "INSTRUCTOR"
+            }
+        });
+        if (!instructor) {
+            return res.status(404).json({
+                message: "Instructor not found"
+            });
+        }
+
+        if (instructor.id !== req.user.id) {
+            return res.status(403).json({
+                message: "Unauthorized: You can only update your own profile"
+            });
+        }
+
+        const updateData = {};
+
+        if (name !== undefined) {
+            if (typeof name !== "string" || !validator.isLength(name, {min: 3, max: 30})) {
+                return res.status(400).json({
+                    message: "Name must be a string and between 3 and 30 characters"
+                });
+            }
+            updateData.name = name;
+        }
+
+        if (email !== undefined) {
+            if (!validator.isEmail(email)) {
+                return res.status(400).json({
+                    message: "Invalid email format"
+                })
+            }
+
+            if (instructor.email === email) {
+                return res.status(400).json({
+                    message: "Email is the same as the current one"
+                });
+            }
+
+            updateData.email = email;
+        }
+
+        const updateInstructor = await prisma.user.update({
+            where: {
+                id: req.user.id,
+                email: req.user.email,
+                role: "INSTRUCTOR"
+            },
+            data: updateData
+        });
+
+        res.status(200).json({
+            message: "Profile updated successfully",
+            instructor: {
+                id: updateInstructor.id,
+                name: updateInstructor.name,
+                email: updateInstructor.email,
+                role: updateInstructor.role
+            }
+        });
+    } catch (error) {
+        console.error("Error during instructor profile update:", error);
+        res.status(500).json({
+            message: "Internal server error",
+            error: error.message || "An unexpected error occurred"
+        });
+    }
+}
+
+export {registerInstructor, loginInstructor, updateProfile};

@@ -130,4 +130,80 @@ const loginStudent = async (req, res) => {
     }
 }
 
-export {registerStudent, loginStudent};
+const updateProfile = async (req, res) => {
+    try {
+        const {name, email} = req.body;
+
+        const student = await prisma.user.findUnique({
+            where: {
+                id: req.user.id,
+                email: req.user.email,
+                role: 'STUDENT'
+            }
+        });
+        if (!student) {
+            return res.status(404).json({
+                message: "Student doesn't exist"
+            });
+        }
+
+        if (student.id !== req.user.id) {
+            return res.status(401).json({
+                message: "Unauthorized: You can only update your own profile"
+            });
+        }
+
+        const updateData = {};
+
+        if (name !== undefined) {
+            if (typeof name !== 'string' || !validator.isLength(name, {min: 3, max: 30})) {
+                return res.status(400).json({
+                    message: "Name must be a string and between 3 and 30 characters"
+                });
+            }
+            updateData.name = name;
+        }
+
+        if (email !== undefined) {
+            if (typeof email !== 'string' || !validator.isEmail(email)) {
+                return res.status(400).json({
+                    message: "Email must be a valid email"
+                });
+            }
+
+            if (student.email === email) {
+                return res.status(400).json({
+                    message: "Email is the same as the current one"
+                });
+            }
+            updateData.email = email;
+        }
+
+        const updatedStudent = await prisma.user.update({
+            where: {
+                id: req.user.id,
+                email: req.user.email,
+                role: 'STUDENT'
+            },
+            data: updateData
+        });
+
+        res.status(200).json({
+            message: "Profile updated successfully",
+            student: {
+                id: updatedStudent.id,
+                name: updatedStudent.name,
+                email: updatedStudent.email,
+                role: updatedStudent.role
+            }
+        });
+    } catch (error) {
+        console.error("Error during student profile update:", error);
+        return res.status(500).json({
+            message: "Internal server error",
+            error: error.message || "An unexpected error occurred"
+        });
+    }
+}
+
+export {registerStudent, loginStudent, updateProfile};
