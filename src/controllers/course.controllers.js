@@ -42,19 +42,19 @@ const createCourse = async (req, res) => {
                 description,
                 instructorId: req.user.id
             },
-            
+            include: {
+                intructor: true
+            }
         });
 
         res.status(201).json({
             message: "Course created successfully",
             course: {
                 id: course.id,
+                instructor: course.intructor.name,
                 title: course.title,
                 description: course.description,
-                instructor: {
-                    id: course.instructorId,
-                    name: instructor.name
-                }
+                createdAt: course.createdAt
             }
         });
     } catch (error) {
@@ -90,7 +90,8 @@ const listCourses = async (req, res) => {
                 }
             },
             include: {
-                modules: true
+                modules: true,
+                intructor: true
             },
             skip: skip,
             take: limitNum
@@ -116,9 +117,9 @@ const listCourses = async (req, res) => {
             courses: {
                 courses: courses.map(course => ({
                     id: course.id,
+                    instuctor: course.intructor.name,
                     title: course.title,
                     description: course.description,
-                    instructorId: course.instructorId,
                     modules: course.modules.map(module => ({
                         id: module.id,
                         title: module.title,
