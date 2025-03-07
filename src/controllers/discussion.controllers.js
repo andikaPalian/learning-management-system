@@ -19,7 +19,7 @@ const createDiscussion = async (req, res) => {
                 id: courseId
             },
             include: {
-                enrollments: true
+                enrollments: true,
             }
         });
         if (!course) {
@@ -47,12 +47,20 @@ const createDiscussion = async (req, res) => {
                 title,
                 courseId,
                 userId: req.user.id
+            },
+            include: {
+                user: true
             }
         });
 
         res.status(201).json({
             message: "Discussion created successfully",
-            discussion: discussion
+            discussion: {
+                id: discussion.id,
+                name: discussion.user.name,
+                title: discussion.title,
+                createdAt: discussion.createdAt,
+            }
         });
     } catch (error) {
         console.error("Error during create discussion:", error);
